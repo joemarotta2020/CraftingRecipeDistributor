@@ -1,4 +1,5 @@
 #include "Distributor.h"
+#include "Hooks.h"
 
 void OnInit(SKSE::MessagingInterface::Message* a_msg)
 {
@@ -96,6 +97,8 @@ SKSE_PLUGIN_LOAD(const SKSE::LoadInterface* a_skse)
 		}
 	}
 #endif
+
+	CRAFT::Hooks::Install();
 
 	const auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(OnInit);
