@@ -15,6 +15,7 @@ namespace CRAFT
 
 		RE::BGSConstructibleObject* FindConstructible(RE::BGSKeyword* a_bench, RE::TESForm* a_createdItem) const;
 
+		void AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj);
 		void AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj, const BreakdownRecipeInfo& a_info);
 		void HandleCraftedItem(RE::BGSConstructibleObject* a_recipe, RE::TESForm* a_result);
 
