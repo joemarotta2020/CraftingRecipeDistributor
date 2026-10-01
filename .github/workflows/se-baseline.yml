@@ -1,18 +1,27 @@
-name: SE Baseline
-on: [push, workflow_dispatch]
+name: SE 1.5.97 Build
+
+on:
+  push:
+    branches: '**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    uses: powerof3/pack-skse-mod/.github/workflows/pack.yml@main-vs2022
+    uses: powerof3/pack-skse-mod/.github/workflows/build-variant.yml@main-vs2022
     with:
-      CMAKE_SE_CONFIG_PRESET: 'vs2022-se'
-      CMAKE_SE_BUILD_PRESET: 'vs2022-se'
-      CMAKE_AE_CONFIG_PRESET: ''
-      CMAKE_AE_BUILD_PRESET: ''
-      CMAKE_VR_CONFIG_PRESET: ''
-      CMAKE_VR_BUILD_PRESET: ''
-      FOMOD_MOD_NAME: "Crafting Recipe Distributor"
-      FOMOD_MOD_AUTHOR: "powerofthree"
-      FOMOD_MOD_NEXUS_ID: "52276"
-      FOMOD_SE_MIN_GAME_VERSION: '1.5'
-      FOMOD_REQUIRED_INSTALLATION_DIR: "Skyrim/Data"
-      PUBLISH_ARCHIVE_TYPE: '7z'
+      GIT_BRANCH: ${{ github.ref_name }}
+      GIT_COMMON_LIB_BRANCH: ''
+      CMAKE_PROJECT_DIR: ''
+      CMAKE_CONFIG_PRESET: 'vs2022-se'
+      CMAKE_BUILD_PRESET: 'vs2022-se'
+      CMAKE_CONFIG: 'Release'
+      BINARY_DIR: 'build'
+      BINARY_NAME: ''
+      BINARY_NAME_VAR: 'NAME'
+      BINARY_VERSION: ''
+      BINARY_VERSION_VAR: 'VERSION'
+      VARIANT: 'se'
