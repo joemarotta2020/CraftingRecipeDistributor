@@ -1,5 +1,7 @@
 #include "Distributor.h"
 
+#include <random>
+
 namespace CRAFT
 {
 	void Manager::LoadOverwrites()
@@ -51,11 +53,76 @@ namespace CRAFT
 		REX::INFO("\tmax armor cap : {}", smelt.maxArmorAmount.GetValue());
 		REX::INFO("\tmax jewelry cap : {}", smelt.maxJewelryAmount.GetValue());
 		REX::INFO("\tmax clutter cap : {}", smelt.maxClutterAmount.GetValue());
+
+		REX::INFO("SCRAP");
+		REX::INFO("\tenabled : {}", smelt.scrapEnabled.GetValue());
+		REX::INFO("\tyield multiplier : {}", smelt.scrapYieldMultiplier.GetValue());
+
+		REX::INFO("BREAKDOWN FAILURE");
+		REX::INFO("\tenabled : {}", smelt.failureEnabled.GetValue());
+		REX::INFO("\tsmelting base/factor : {} / {}", smelt.smeltingBaseFailure.GetValue(), smelt.smeltingSkillFactor.GetValue());
+		REX::INFO("\ttanning base/factor : {} / {}", smelt.tanningBaseFailure.GetValue(), smelt.tanningSkillFactor.GetValue());
+		REX::INFO("\tclamp : {} - {}", smelt.minimumFailure.GetValue(), smelt.maximumFailure.GetValue());
 	}
 
-	void Manager::AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj)
+	void Manager::AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj, const BreakdownRecipeInfo& a_info)
 	{
 		generatedConstructibles.push_back(a_obj);
+		breakdownRecipes.insert_or_assign(a_obj, a_info);
+	}
+
+	void Manager::HandleCraftedItem(RE::BGSConstructibleObject* a_recipe, RE::TESForm* a_result)
+	{
+		if (!a_recipe || !a_result || !smelt.failureEnabled.GetValue()) {
+			return;
+		}
+
+		const auto it = breakdownRecipes.find(a_recipe);
+		if (it == breakdownRecipes.end()) {
+			return;
+		}
+
+		const auto output = a_recipe->createdItem;
+		if (!output || output->GetFormID() != a_result->GetFormID()) {
+			return;
+		}
+
+		const auto player = RE::PlayerCharacter::GetSingleton();
+		if (!player) {
+			return;
+		}
+
+		const auto smithing = player->GetActorValue(RE::ActorValue::kSmithing);
+		const auto chance = smelt.CalculateFailureChance(it->second, smithing);
+		if (chance <= 0.0f) {
+			return;
+		}
+
+		static thread_local std::mt19937 rng{ std::random_device{}() };
+		std::uniform_real_distribution<float> distribution(0.0f, 100.0f);
+		const auto roll = distribution(rng);
+
+		if (smelt.debugFailure.GetValue()) {
+			REX::INFO(
+				"Breakdown roll : recipe {:08X}, item {}, smithing {:.1f}, difficulty {:.1f}, chance {:.1f}, roll {:.1f}",
+				a_recipe->GetFormID(),
+				output->GetName(),
+				smithing,
+				it->second.difficulty,
+				chance,
+				roll);
+		}
+
+		if (roll >= chance) {
+			return;
+		}
+
+		const auto outputCount = std::max<std::int32_t>(1, static_cast<std::int32_t>(a_recipe->data.numConstructed));
+		player->RemoveItem(output, outputCount, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
+
+		if (smelt.notifyFailure.GetValue()) {
+			RE::DebugNotification("Breakdown failed. No usable material recovered.");
+		}
 	}
 
 	void Manager::InitData()
@@ -64,6 +131,8 @@ namespace CRAFT
 		dwemerIngot = RE::TESForm::LookupByID<RE::TESObjectMISC>(0xDB8A2);
 		goldIngot = RE::TESForm::LookupByID<RE::TESObjectMISC>(0x5AD9E);
 		silverIngot = RE::TESForm::LookupByID<RE::TESObjectMISC>(0x5ACE3);
+
+		breakdownRecipes.clear();
 
 		smelt.InitData();
 		temper.InitData();
