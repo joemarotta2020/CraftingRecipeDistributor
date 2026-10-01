@@ -87,7 +87,7 @@ namespace CRAFT
 			return;
 		}
 
-		const auto output = a_recipe->createdItem;
+		const auto output = a_recipe->createdItem ? a_recipe->createdItem->As<RE::TESBoundObject>() : nullptr;
 		if (!output || output->GetFormID() != a_result->GetFormID()) {
 			return;
 		}
@@ -126,7 +126,9 @@ namespace CRAFT
 		player->RemoveItem(output, outputCount, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
 
 		if (smelt.notifyFailure.GetValue()) {
-			RE::DebugNotification("Breakdown failed. No usable material recovered.");
+			using notify_t = void(const char*, const char*, bool);
+			static REL::Relocation<notify_t> notify{ RELOCATION_ID(52050, 52933) };
+			notify("Breakdown failed. No usable material recovered.", nullptr, true);
 		}
 	}
 
