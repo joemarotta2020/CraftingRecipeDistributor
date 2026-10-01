@@ -201,8 +201,8 @@ namespace CRAFT
 		const auto factor = a_info.tanning ? tanningSkillFactor.GetValue() : smeltingSkillFactor.GetValue();
 
 		auto chance = base + ((a_info.difficulty - a_smithingSkill) * factor);
-		const auto minimum = std::min(minimumFailure.GetValue(), maximumFailure.GetValue());
-		const auto maximum = std::max(minimumFailure.GetValue(), maximumFailure.GetValue());
+		const auto minimum = std::clamp(std::min(minimumFailure.GetValue(), maximumFailure.GetValue()), 0.0f, 100.0f);
+		const auto maximum = std::clamp(std::max(minimumFailure.GetValue(), maximumFailure.GetValue()), 0.0f, 100.0f);
 		return std::clamp(chance, minimum, maximum);
 	}
 
@@ -327,7 +327,6 @@ namespace CRAFT
 			}
 
 			if (!output) {
-				delete constructibleObj;
 				return false;
 			}
 
