@@ -72,8 +72,9 @@ namespace CRAFT
 	float SMELT::GetMaterialDifficulty(RE::TESBoundObject* a_item, RE::TESForm* a_recoveryMaterial) const
 	{
 		if (a_item) {
+			const auto keywordForm = a_item->As<RE::BGSKeywordForm>();
 			const auto has = [&](std::string_view a_keyword) {
-				return a_item->HasKeywordString(a_keyword);
+				return keywordForm && keywordForm->HasKeywordString(a_keyword);
 			};
 
 			if (has("ArmorMaterialDaedric"sv) || has("WeapMaterialDaedric"sv)) {
