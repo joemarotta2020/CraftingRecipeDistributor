@@ -4,12 +4,20 @@
 
 namespace CRAFT
 {
+	struct BreakdownRecipeInfo
+	{
+		bool  tanning{ false };
+		float difficulty{ 0.0f };
+	};
+
 	class SMELT : public CraftingBase
 	{
 	public:
 		void InitData();
 		bool CreateRecipe(TYPE a_type, RE::TESBoundObject* a_item, std::int32_t a_numRequired = 1);
 		bool CreateRecipe(TYPE a_type, RE::TESBoundObject* a_item, RE::TESForm* a_ingot, std::uint16_t a_numConstructed, std::int32_t a_numRequired = 1);
+
+		float CalculateFailureChance(const BreakdownRecipeInfo& a_info, float a_smithingSkill) const;
 
 		// members
 		RE::BGSKeyword* smeltKywd{};
@@ -20,6 +28,40 @@ namespace CRAFT
 		REX::TIniSetting<std::uint16_t> maxArmorAmount{ "SMELT", "Armor cap", 0 };
 		REX::TIniSetting<std::uint16_t> maxJewelryAmount{ "SMELT", "Jewelry cap", 0 };
 		REX::TIniSetting<std::uint16_t> maxClutterAmount{ "SMELT", "Clutter cap", 0 };
+
+		REX::TIniSetting<bool>  scrapEnabled{ "SCRAP", "Enabled", true };
+		REX::TIniSetting<float> scrapYieldMultiplier{ "SCRAP", "YieldMultiplier", 1.0f };
+
+		REX::TIniSetting<bool>  failureEnabled{ "BREAKDOWN_FAILURE", "Enabled", true };
+		REX::TIniSetting<float> smeltingBaseFailure{ "BREAKDOWN_FAILURE", "SmeltingBaseFailure", 15.0f };
+		REX::TIniSetting<float> smeltingSkillFactor{ "BREAKDOWN_FAILURE", "SmeltingSkillFactor", 1.0f };
+		REX::TIniSetting<float> tanningBaseFailure{ "BREAKDOWN_FAILURE", "TanningBaseFailure", 10.0f };
+		REX::TIniSetting<float> tanningSkillFactor{ "BREAKDOWN_FAILURE", "TanningSkillFactor", 0.75f };
+		REX::TIniSetting<float> minimumFailure{ "BREAKDOWN_FAILURE", "MinimumFailure", 0.0f };
+		REX::TIniSetting<float> maximumFailure{ "BREAKDOWN_FAILURE", "MaximumFailure", 75.0f };
+		REX::TIniSetting<bool>  notifyFailure{ "BREAKDOWN_FAILURE", "NotifyFailure", true };
+		REX::TIniSetting<bool>  debugFailure{ "BREAKDOWN_FAILURE", "DebugLog", false };
+
+		REX::TIniSetting<float> difficultyIron{ "MATERIAL_DIFFICULTY", "Iron", 0.0f };
+		REX::TIniSetting<float> difficultySteel{ "MATERIAL_DIFFICULTY", "Steel", 20.0f };
+		REX::TIniSetting<float> difficultyAdvancedSteel{ "MATERIAL_DIFFICULTY", "AdvancedSteel", 50.0f };
+		REX::TIniSetting<float> difficultySilver{ "MATERIAL_DIFFICULTY", "Silver", 20.0f };
+		REX::TIniSetting<float> difficultyGold{ "MATERIAL_DIFFICULTY", "Gold", 20.0f };
+		REX::TIniSetting<float> difficultyCorundum{ "MATERIAL_DIFFICULTY", "Corundum", 20.0f };
+		REX::TIniSetting<float> difficultyQuicksilver{ "MATERIAL_DIFFICULTY", "Quicksilver", 30.0f };
+		REX::TIniSetting<float> difficultyDwarven{ "MATERIAL_DIFFICULTY", "Dwarven", 30.0f };
+		REX::TIniSetting<float> difficultyElven{ "MATERIAL_DIFFICULTY", "Elven", 30.0f };
+		REX::TIniSetting<float> difficultyChaurus{ "MATERIAL_DIFFICULTY", "Chaurus", 40.0f };
+		REX::TIniSetting<float> difficultyBonemold{ "MATERIAL_DIFFICULTY", "Bonemold", 30.0f };
+		REX::TIniSetting<float> difficultyOrcish{ "MATERIAL_DIFFICULTY", "Orcish", 50.0f };
+		REX::TIniSetting<float> difficultyGlass{ "MATERIAL_DIFFICULTY", "Glass", 70.0f };
+		REX::TIniSetting<float> difficultyEbony{ "MATERIAL_DIFFICULTY", "Ebony", 80.0f };
+		REX::TIniSetting<float> difficultyStalhrim{ "MATERIAL_DIFFICULTY", "Stalhrim", 80.0f };
+		REX::TIniSetting<float> difficultyDaedric{ "MATERIAL_DIFFICULTY", "Daedric", 90.0f };
+		REX::TIniSetting<float> difficultyDragon{ "MATERIAL_DIFFICULTY", "Dragon", 100.0f };
+		REX::TIniSetting<float> difficultyLeather{ "MATERIAL_DIFFICULTY", "Leather", 0.0f };
+		REX::TIniSetting<float> difficultyWood{ "MATERIAL_DIFFICULTY", "Wood", 0.0f };
+		REX::TIniSetting<float> difficultyUnknown{ "MATERIAL_DIFFICULTY", "Unknown", 25.0f };
 
 		std::uint32_t weapCount{ 0 };
 		std::uint32_t armorCount{ 0 };
@@ -90,5 +132,12 @@ namespace CRAFT
 			{ "WeapMaterialWood"sv, "Firewood01"sv }
 		};
 		static constexpr RE::FormID tanningRackMat = 0x800E4;
+
+	private:
+		void InitScrapData();
+		RE::TESBoundObject* GetScrapOutput(RE::TESForm* a_material) const;
+		float GetMaterialDifficulty(RE::TESBoundObject* a_item, RE::TESForm* a_recoveryMaterial) const;
+
+		Map<RE::FormID, RE::TESBoundObject*> scrapOutputs{};
 	};
 }
