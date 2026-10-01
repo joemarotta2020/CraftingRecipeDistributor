@@ -55,7 +55,7 @@ namespace CRAFT::Hooks
 				REL::Relocation<std::uintptr_t> target{ REL::ID(50476), 0x11E };
 #endif
 
-				auto& trampoline = SKSE::GetTrampoline();
+				auto& trampoline = REL::GetTrampoline();
 				_Original = trampoline.write_call<5>(target.address(), Thunk);
 				REX::INFO("Installed CRD breakdown craft hook at {:X}", target.address());
 			}
@@ -67,7 +67,6 @@ namespace CRAFT::Hooks
 	void Install()
 	{
 #ifndef SKYRIMVR
-		SKSE::AllocTrampoline(14);
 		CraftHook::Install();
 #else
 		REX::WARN("Breakdown failure hook is not installed for Skyrim VR");
