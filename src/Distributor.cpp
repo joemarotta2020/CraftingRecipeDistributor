@@ -65,9 +65,14 @@ namespace CRAFT
 		REX::INFO("\tclamp : {} - {}", smelt.minimumFailure.GetValue(), smelt.maximumFailure.GetValue());
 	}
 
-	void Manager::AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj, const BreakdownRecipeInfo& a_info)
+	void Manager::AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj)
 	{
 		generatedConstructibles.push_back(a_obj);
+	}
+
+	void Manager::AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj, const BreakdownRecipeInfo& a_info)
+	{
+		AddGeneratedConstructible(a_obj);
 		breakdownRecipes.insert_or_assign(a_obj, a_info);
 	}
 
