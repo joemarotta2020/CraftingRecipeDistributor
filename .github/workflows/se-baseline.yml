@@ -1,0 +1,18 @@
+name: SE Baseline
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    uses: powerof3/pack-skse-mod/.github/workflows/pack.yml@main-vs2022
+    with:
+      CMAKE_SE_CONFIG_PRESET: 'vs2022-se'
+      CMAKE_SE_BUILD_PRESET: 'vs2022-se'
+      CMAKE_AE_CONFIG_PRESET: ''
+      CMAKE_AE_BUILD_PRESET: ''
+      CMAKE_VR_CONFIG_PRESET: ''
+      CMAKE_VR_BUILD_PRESET: ''
+      FOMOD_MOD_NAME: "Crafting Recipe Distributor"
+      FOMOD_MOD_AUTHOR: "powerofthree"
+      FOMOD_MOD_NEXUS_ID: "52276"
+      FOMOD_SE_MIN_GAME_VERSION: '1.5'
+      FOMOD_REQUIRED_INSTALLATION_DIR: "Skyrim/Data"
+      PUBLISH_ARCHIVE_TYPE: '7z'
