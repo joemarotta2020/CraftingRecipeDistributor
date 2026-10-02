@@ -1,5 +1,7 @@
 #include "Distributor.h"
 
+#include <random>
+
 namespace CRAFT
 {
 	void Manager::LoadOverwrites()
@@ -51,11 +53,83 @@ namespace CRAFT
 		REX::INFO("\tmax armor cap : {}", smelt.maxArmorAmount.GetValue());
 		REX::INFO("\tmax jewelry cap : {}", smelt.maxJewelryAmount.GetValue());
 		REX::INFO("\tmax clutter cap : {}", smelt.maxClutterAmount.GetValue());
+
+		REX::INFO("SCRAP");
+		REX::INFO("\tenabled : {}", smelt.scrapEnabled.GetValue());
+		REX::INFO("\tyield multiplier : {}", smelt.scrapYieldMultiplier.GetValue());
+
+		REX::INFO("BREAKDOWN FAILURE");
+		REX::INFO("\tenabled : {}", smelt.failureEnabled.GetValue());
+		REX::INFO("\tsmelting base/factor : {} / {}", smelt.smeltingBaseFailure.GetValue(), smelt.smeltingSkillFactor.GetValue());
+		REX::INFO("\ttanning base/factor : {} / {}", smelt.tanningBaseFailure.GetValue(), smelt.tanningSkillFactor.GetValue());
+		REX::INFO("\tclamp : {} - {}", smelt.minimumFailure.GetValue(), smelt.maximumFailure.GetValue());
 	}
 
 	void Manager::AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj)
 	{
 		generatedConstructibles.push_back(a_obj);
+	}
+
+	void Manager::AddGeneratedConstructible(RE::BGSConstructibleObject* a_obj, const BreakdownRecipeInfo& a_info)
+	{
+		AddGeneratedConstructible(a_obj);
+		breakdownRecipes.insert_or_assign(a_obj, a_info);
+	}
+
+	void Manager::HandleCraftedItem(RE::BGSConstructibleObject* a_recipe, RE::TESForm* a_result)
+	{
+		if (!a_recipe || !a_result || !smelt.failureEnabled.GetValue()) {
+			return;
+		}
+
+		const auto it = breakdownRecipes.find(a_recipe);
+		if (it == breakdownRecipes.end()) {
+			return;
+		}
+
+		const auto output = a_recipe->createdItem ? a_recipe->createdItem->As<RE::TESBoundObject>() : nullptr;
+		if (!output || output->GetFormID() != a_result->GetFormID()) {
+			return;
+		}
+
+		const auto player = RE::PlayerCharacter::GetSingleton();
+		if (!player) {
+			return;
+		}
+
+		const auto smithing = player->GetActorValue(RE::ActorValue::kSmithing);
+		const auto chance = smelt.CalculateFailureChance(it->second, smithing);
+		if (chance <= 0.0f) {
+			return;
+		}
+
+		static thread_local std::mt19937 rng{ std::random_device{}() };
+		std::uniform_real_distribution<float> distribution(0.0f, 100.0f);
+		const auto roll = distribution(rng);
+
+		if (smelt.debugFailure.GetValue()) {
+			REX::INFO(
+				"Breakdown roll : recipe {:08X}, item {}, smithing {:.1f}, difficulty {:.1f}, chance {:.1f}, roll {:.1f}",
+				a_recipe->GetFormID(),
+				output->GetName(),
+				smithing,
+				it->second.difficulty,
+				chance,
+				roll);
+		}
+
+		if (roll >= chance) {
+			return;
+		}
+
+		const auto outputCount = std::max<std::int32_t>(1, static_cast<std::int32_t>(a_recipe->data.numConstructed));
+		player->RemoveItem(output, outputCount, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
+
+		if (smelt.notifyFailure.GetValue()) {
+			using notify_t = void(const char*, const char*, bool);
+			static REL::Relocation<notify_t> notify{ RELOCATION_ID(52050, 52933) };
+			notify("Breakdown failed. No usable material recovered.", nullptr, true);
+		}
 	}
 
 	void Manager::InitData()
@@ -64,6 +138,8 @@ namespace CRAFT
 		dwemerIngot = RE::TESForm::LookupByID<RE::TESObjectMISC>(0xDB8A2);
 		goldIngot = RE::TESForm::LookupByID<RE::TESObjectMISC>(0x5AD9E);
 		silverIngot = RE::TESForm::LookupByID<RE::TESObjectMISC>(0x5ACE3);
+
+		breakdownRecipes.clear();
 
 		smelt.InitData();
 		temper.InitData();
@@ -86,7 +162,7 @@ namespace CRAFT
 	{
 		if (!smelt.CreateRecipe(a_type, a_form)) {
 			if (auto formCount = smelt.keywordMap.GetData(a_form)) {
-				smelt.CreateRecipe(a_type, a_form, formCount->form, formCount->count);
+				smelt.CreateRecipe(a_type, a_form, formCount->form, formCount->count, formCount->requiredCount);
 			}
 		}
 		if (!temper.CreateRecipe(a_form)) {
@@ -104,10 +180,12 @@ namespace CRAFT
 
 		RE::TESBoundObject* ingot = nullptr;
 		std::uint16_t       numConstructed = 0;
+		std::int32_t        numRequired = 1;
 
 		if (auto formCount = smelt.keywordMap.GetData(a_armor)) {
 			ingot = static_cast<RE::TESBoundObject*>(formCount->form);
 			numConstructed = formCount->count;
+			numRequired = formCount->requiredCount;
 		} else {
 			auto edid = editorID::get_editorID(a_armor);
 			if (const auto templateArmor = a_armor->templateArmor; templateArmor) {
@@ -121,8 +199,6 @@ namespace CRAFT
 		}
 
 		if (ingot) {
-			std::int32_t numRequired = 1;
-
 			auto itemWeight = a_armor->GetWeight();
 			auto ingotWeight = ingot->GetWeight();
 			if (itemWeight == 0.0f) {
@@ -131,7 +207,7 @@ namespace CRAFT
 			if (ingotWeight == 0.0f) {
 				ingotWeight = 0.1f;
 			}
-			if (itemWeight < ingotWeight) {
+			if (numRequired == 1 && itemWeight < ingotWeight) {
 				numRequired = static_cast<std::int32_t>(ingotWeight / itemWeight);
 			}
 
@@ -147,10 +223,12 @@ namespace CRAFT
 
 		RE::TESBoundObject* ingot = nullptr;
 		std::uint16_t       numConstructed = 0;
+		std::int32_t        numRequired = 1;
 
 		if (auto formCount = smelt.keywordMap.GetData(a_miscObj)) {
 			ingot = static_cast<RE::TESBoundObject*>(formCount->form);
 			numConstructed = formCount->count;
+			numRequired = formCount->requiredCount;
 		} else {
 			if (!a_miscObj->HasKeywordString("VendorItemOreIngot"sv) && (a_miscObj->HasKeywordString("VendorItemClutter"sv) || a_miscObj->HasKeywordString("VendorItemTool"sv))) {
 				if (REX::STR::ICONTAINS(a_miscObj->model, "gold") || REX::STR::ICONTAINS(a_miscObj->model, "coin")) {
@@ -166,8 +244,6 @@ namespace CRAFT
 		}
 
 		if (ingot) {
-			std::int32_t numRequired = 1;
-
 			if (numConstructed == 0) {
 				auto itemWeight = a_miscObj->GetWeight();
 				auto ingotWeight = ingot->GetWeight();
@@ -253,6 +329,32 @@ namespace CRAFT
 				}
 				CreateClutterRecipes(miscObj);
 			}
+
+			// A CRD scrap replacement must be authoritative. Some plugin recipes can
+			// survive as runtime COBJs even when an override is flagged deleted, which
+			// exposes both the old ingot recipe and the new scrap recipe at the smelter.
+			// Hide only legacy smelter recipes whose sole input is a source for which
+			// CRD generated a mapped ingot -> DRIT scrap replacement.
+			std::uint32_t suppressedLegacyScrapRecipes = 0;
+			if (smelt.scrapEnabled.GetValue()) {
+				for (auto& cobj : vanillaConstructibles) {
+					if (!cobj || cobj->benchKeyword != smelt.smeltKywd || !smelt.IsScrapRecoveryMaterial(cobj->createdItem)) {
+						continue;
+					}
+
+					const auto firstInput = cobj->requiredItems.GetContainerObjectAt(0);
+					if (!firstInput.has_value() || !firstInput.value()->obj || !smelt.IsScrapSource(firstInput.value()->obj)) {
+						continue;
+					}
+
+					// CRD's generated recipe now owns this breakdown path. A null bench
+					// keyword removes the legacy recipe from the smelter without touching
+					// unrelated ore -> ingot recipes or DRIT scrap -> ingot recovery.
+					cobj->benchKeyword = nullptr;
+					suppressedLegacyScrapRecipes++;
+				}
+			}
+			REX::INFO("\t{} legacy direct-material breakdown recipes suppressed", suppressedLegacyScrapRecipes);
 
 			std::ranges::copy(generatedConstructibles, std::back_inserter(dataHandler->GetFormArray<RE::BGSConstructibleObject>()));
 

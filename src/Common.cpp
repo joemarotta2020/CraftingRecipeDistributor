@@ -47,9 +47,10 @@ namespace RE
 
 namespace CRAFT
 {
-	FormCount::FormCount(RE::TESForm* a_form, std::uint16_t a_count) :
+	FormCount::FormCount(RE::TESForm* a_form, std::uint16_t a_count, std::uint16_t a_requiredCount) :
 		form(a_form),
-		count(a_count)
+		count(a_count),
+		requiredCount(std::max<std::uint16_t>(1, a_requiredCount))
 	{}
 
 	FormCount::FormCount(RE::TESForm* a_form) :
@@ -127,10 +128,16 @@ namespace CRAFT
 				continue;
 			}
 
-			//COUNT
+			//COUNT (output / ingot-equivalent)
 			std::uint16_t count = 0;
 			if (sections.size() > 2) {
 				count = REX::STR::TO_NUM<std::uint16_t>(sections[2]);
+			}
+
+			//REQUIRED COUNT (optional fourth field; defaults to 1)
+			std::uint16_t requiredCount = 1;
+			if (sections.size() > 3) {
+				requiredCount = std::max<std::uint16_t>(1, REX::STR::TO_NUM<std::uint16_t>(sections[3]));
 			}
 
 			//KEYWORDS
@@ -138,7 +145,7 @@ namespace CRAFT
 				auto split_str = REX::STR::SPLIT(sections[1], ",");
 				std::ranges::for_each(split_str, [](auto& str) { REX::STR::TRIM(str); });
 
-				auto formCount = FormCount(createdItem, count);
+				auto formCount = FormCount(createdItem, count, requiredCount);
 
 				for (const auto& str : split_str) {
 					std::visit(overload{

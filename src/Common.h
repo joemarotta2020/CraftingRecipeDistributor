@@ -21,12 +21,13 @@ namespace CRAFT
 	struct FormCount
 	{
 		FormCount() = default;
-		FormCount(RE::TESForm* a_form, std::uint16_t a_count);
+		FormCount(RE::TESForm* a_form, std::uint16_t a_count, std::uint16_t a_requiredCount = 1);
 		explicit FormCount(RE::TESForm* a_form);
 
 		// members
 		RE::TESForm*  form;
 		std::uint16_t count;
+		std::uint16_t requiredCount;
 	};
 
 	using RawMap = frozen::map<std::string_view, std::string_view, 61>; // keyword/material
