@@ -14,7 +14,7 @@ namespace CRAFT
 	{
 	public:
 		void InitData();
-		bool CreateRecipe(TYPE a_type, RE::TESBoundObject* a_item, std::int32_t a_numRequired = 1);
+		bool CreateRecipe(TYPE a_type, RE::TESBoundObject* a_item, std::int32_t a_numRequired = 0);
 		bool CreateRecipe(TYPE a_type, RE::TESBoundObject* a_item, RE::TESForm* a_ingot, std::uint16_t a_numConstructed, std::int32_t a_numRequired = 1);
 
 		float CalculateFailureChance(const BreakdownRecipeInfo& a_info, float a_smithingSkill) const;
