@@ -162,7 +162,7 @@ namespace CRAFT
 	{
 		if (!smelt.CreateRecipe(a_type, a_form)) {
 			if (auto formCount = smelt.keywordMap.GetData(a_form)) {
-				smelt.CreateRecipe(a_type, a_form, formCount->form, formCount->count);
+				smelt.CreateRecipe(a_type, a_form, formCount->form, formCount->count, formCount->requiredCount);
 			}
 		}
 		if (!temper.CreateRecipe(a_form)) {
@@ -180,10 +180,12 @@ namespace CRAFT
 
 		RE::TESBoundObject* ingot = nullptr;
 		std::uint16_t       numConstructed = 0;
+		std::int32_t        numRequired = 1;
 
 		if (auto formCount = smelt.keywordMap.GetData(a_armor)) {
 			ingot = static_cast<RE::TESBoundObject*>(formCount->form);
 			numConstructed = formCount->count;
+			numRequired = formCount->requiredCount;
 		} else {
 			auto edid = editorID::get_editorID(a_armor);
 			if (const auto templateArmor = a_armor->templateArmor; templateArmor) {
@@ -197,8 +199,6 @@ namespace CRAFT
 		}
 
 		if (ingot) {
-			std::int32_t numRequired = 1;
-
 			auto itemWeight = a_armor->GetWeight();
 			auto ingotWeight = ingot->GetWeight();
 			if (itemWeight == 0.0f) {
@@ -207,7 +207,7 @@ namespace CRAFT
 			if (ingotWeight == 0.0f) {
 				ingotWeight = 0.1f;
 			}
-			if (itemWeight < ingotWeight) {
+			if (numRequired == 1 && itemWeight < ingotWeight) {
 				numRequired = static_cast<std::int32_t>(ingotWeight / itemWeight);
 			}
 
@@ -223,10 +223,12 @@ namespace CRAFT
 
 		RE::TESBoundObject* ingot = nullptr;
 		std::uint16_t       numConstructed = 0;
+		std::int32_t        numRequired = 1;
 
 		if (auto formCount = smelt.keywordMap.GetData(a_miscObj)) {
 			ingot = static_cast<RE::TESBoundObject*>(formCount->form);
 			numConstructed = formCount->count;
+			numRequired = formCount->requiredCount;
 		} else {
 			if (!a_miscObj->HasKeywordString("VendorItemOreIngot"sv) && (a_miscObj->HasKeywordString("VendorItemClutter"sv) || a_miscObj->HasKeywordString("VendorItemTool"sv))) {
 				if (REX::STR::ICONTAINS(a_miscObj->model, "gold") || REX::STR::ICONTAINS(a_miscObj->model, "coin")) {
@@ -242,8 +244,6 @@ namespace CRAFT
 		}
 
 		if (ingot) {
-			std::int32_t numRequired = 1;
-
 			if (numConstructed == 0) {
 				auto itemWeight = a_miscObj->GetWeight();
 				auto ingotWeight = ingot->GetWeight();
