@@ -37,6 +37,7 @@ namespace CRAFT
 	void SMELT::InitScrapData()
 	{
 		scrapOutputs.clear();
+		scrapSources.clear();
 
 		if (!scrapEnabled.GetValue()) {
 			REX::INFO("SCRAP conversion disabled");
@@ -54,6 +55,16 @@ namespace CRAFT
 		}
 
 		REX::INFO("SCRAP mappings available : {}", scrapOutputs.size());
+	}
+
+	bool SMELT::IsScrapSource(RE::TESForm* a_form) const
+	{
+		return a_form && scrapSources.contains(a_form->GetFormID());
+	}
+
+	bool SMELT::IsScrapRecoveryMaterial(RE::TESForm* a_form) const
+	{
+		return scrapEnabled.GetValue() && GetScrapOutput(a_form) != nullptr;
 	}
 
 	RE::TESBoundObject* SMELT::GetScrapOutput(RE::TESForm* a_material) const
@@ -330,6 +341,13 @@ namespace CRAFT
 
 			if (!output) {
 				return false;
+			}
+
+			if (output != originalMaterial) {
+				// Remember that this source item has a CRD-generated scrap replacement.
+				// Manager uses this after generation to suppress any surviving legacy
+				// smelter recipe for the same source -> ingot path.
+				scrapSources.insert(a_item->GetFormID());
 			}
 
 			constructibleObj->createdItem = output;
