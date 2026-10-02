@@ -18,6 +18,8 @@ namespace CRAFT
 		bool CreateRecipe(TYPE a_type, RE::TESBoundObject* a_item, RE::TESForm* a_ingot, std::uint16_t a_numConstructed, std::int32_t a_numRequired = 1);
 
 		float CalculateFailureChance(const BreakdownRecipeInfo& a_info, float a_smithingSkill) const;
+		bool IsScrapSource(RE::TESForm* a_form) const;
+		bool IsScrapRecoveryMaterial(RE::TESForm* a_form) const;
 
 		// members
 		RE::BGSKeyword* smeltKywd{};
@@ -139,5 +141,6 @@ namespace CRAFT
 		float GetMaterialDifficulty(RE::TESBoundObject* a_item, RE::TESForm* a_recoveryMaterial) const;
 
 		Map<RE::FormID, RE::TESBoundObject*> scrapOutputs{};
+		Set<RE::FormID>                      scrapSources{};
 	};
 }
