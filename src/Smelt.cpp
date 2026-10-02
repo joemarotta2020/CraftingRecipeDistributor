@@ -216,7 +216,8 @@ namespace CRAFT
 			return false;
 		}
 
-		return CreateRecipe(a_type, a_item, it->second.form, it->second.count, a_numRequired);
+		const auto requiredCount = a_numRequired > 0 ? a_numRequired : static_cast<std::int32_t>(it->second.requiredCount);
+		return CreateRecipe(a_type, a_item, it->second.form, it->second.count, requiredCount);
 	}
 
 	bool SMELT::CreateRecipe(TYPE a_type, RE::TESBoundObject* a_item, RE::TESForm* a_ingot, std::uint16_t a_numConstructed, std::int32_t a_numRequired)
