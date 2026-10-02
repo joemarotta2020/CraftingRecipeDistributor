@@ -330,6 +330,32 @@ namespace CRAFT
 				CreateClutterRecipes(miscObj);
 			}
 
+			// A CRD scrap replacement must be authoritative. Some plugin recipes can
+			// survive as runtime COBJs even when an override is flagged deleted, which
+			// exposes both the old ingot recipe and the new scrap recipe at the smelter.
+			// Hide only legacy smelter recipes whose sole input is a source for which
+			// CRD generated a mapped ingot -> DRIT scrap replacement.
+			std::uint32_t suppressedLegacyScrapRecipes = 0;
+			if (smelt.scrapEnabled.GetValue()) {
+				for (auto& cobj : vanillaConstructibles) {
+					if (!cobj || cobj->benchKeyword != smelt.smeltKywd || !smelt.IsScrapRecoveryMaterial(cobj->createdItem)) {
+						continue;
+					}
+
+					const auto firstInput = cobj->requiredItems.GetContainerObjectAt(0);
+					if (!firstInput.has_value() || !firstInput.value()->obj || !smelt.IsScrapSource(firstInput.value()->obj)) {
+						continue;
+					}
+
+					// CRD's generated recipe now owns this breakdown path. A null bench
+					// keyword removes the legacy recipe from the smelter without touching
+					// unrelated ore -> ingot recipes or DRIT scrap -> ingot recovery.
+					cobj->benchKeyword = nullptr;
+					suppressedLegacyScrapRecipes++;
+				}
+			}
+			REX::INFO("\t{} legacy direct-material breakdown recipes suppressed", suppressedLegacyScrapRecipes);
+
 			std::ranges::copy(generatedConstructibles, std::back_inserter(dataHandler->GetFormArray<RE::BGSConstructibleObject>()));
 
 			REX::INFO("{:*^30}", "RESULT");
